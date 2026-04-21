@@ -1,4 +1,4 @@
-# OSINT Tool 🔎
+# Threat Recon 🔎
 
 Outil Python d'investigation de domaines et d'adresses IP — développé dans le cadre d'une montée en compétences en Cyber Threat Intelligence.
 
