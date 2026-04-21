@@ -1,7 +1,13 @@
+from dotenv import load_dotenv
+import os
 import whois
 import dns.resolver
 import requests
 import socket
+import base64
+
+load_dotenv()
+VT_API_KEY = os.getenv("VT_API_KEY")
 
 def print_banner():
     print("=" * 60)
@@ -53,12 +59,48 @@ def get_ip_info(domain):
     except Exception as e:
         print(f"[!] Erreur IP : {e}")
 
+def check_virustotal(domain):
+    print(f"\n[*] VirusTotal — {domain}")
+    print("-" * 40)
+    if not VT_API_KEY:
+        print("[!] Pas de cle API VirusTotal")
+        return
+    try:
+        url_id = base64.urlsafe_b64encode(f"http://{domain}".encode()).decode().strip("=")
+        headers = {"x-apikey": VT_API_KEY}
+        response = requests.get(
+            f"https://www.virustotal.com/api/v3/urls/{url_id}",
+            headers=headers,
+            timeout=15
+        )
+        if response.status_code == 200:
+            stats = response.json()["data"]["attributes"]["last_analysis_stats"]
+            malicious = stats.get("malicious", 0)
+            suspicious = stats.get("suspicious", 0)
+            clean = stats.get("undetected", 0)
+            total = malicious + suspicious + clean
+            if malicious > 0:
+                verdict = "MALVEILLANT"
+            elif suspicious > 0:
+                verdict = "SUSPECT"
+            else:
+                verdict = "CLEAN"
+            print(f"Verdict       : {verdict}")
+            print(f"Malveillant   : {malicious}/{total} moteurs")
+            print(f"Suspect       : {suspicious}/{total} moteurs")
+            print(f"Clean         : {clean}/{total} moteurs")
+        else:
+            print(f"[!] Erreur VirusTotal : {response.status_code}")
+    except Exception as e:
+        print(f"[!] Erreur : {e}")
+
 # === MAIN ===
 print_banner()
 domain = input("\nEntrez un domaine a analyser : ").strip()
 get_whois(domain)
 get_dns(domain)
 get_ip_info(domain)
+check_virustotal(domain)
 print("\n" + "=" * 60)
 print("Analyse terminee.")
 print("=" * 60)
